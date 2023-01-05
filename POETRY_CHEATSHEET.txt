@@ -1,0 +1,17 @@
+poetry new <project-name> - creates a new project with tests, toml, readme
+poetry init - creates a new toml file
+poetry shell - activates environment
+exit - deactivates environment
+poetry add <package-name> - installs a package
+poetry update <package-name> - updates a package
+poetry remove <package-name> - uninstalls a package
+poetry install - installs dependencies
+poetry show - displays package information
+poetry lock - locks the project dependencies
+poetry update - updates the dependencies according to toml file
+poetry env list - lists existing venvs associated with this poetry project
+potery env remove <python-environment-name> - removes the environment
+poetry run which python - gets the path of venv
+poetry run python -m unittest discover - runs the tests
+poetry config virtualenvs.create false - disables creation of venvs
+poetry config --list - displays configuration
