@@ -23,7 +23,7 @@ model = BertForSequenceClassification.from_pretrained(
 )
 optimizer = AdamW(model.parameters(), lr = 2e-5)
 folder_name = "post_text"
-model_name = f'{folder_name}/bert-base-4epochs-2e5lr.pt'
+model_name = f'{folder_name}/bert-base-4epochs-2e5lr-trainer.pt'
 split_data_reader = SplitDataReader(folder_name)
 batch_size = 32
 num_workers = 0

@@ -3,32 +3,35 @@ import os
 
 from torch.optim import AdamW
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
-from transformers import BertForSequenceClassification, BertTokenizer, get_linear_schedule_with_warmup
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, get_linear_schedule_with_warmup
 
 from data_readers import SplitDataReader
 from train import train
 from validate import validate
 
 # pytorch memory management
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:256"
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:32"
 
 # training configuration
 device = torch.device("cuda")
-tokenizer = BertTokenizer.from_pretrained("bert-base-uncased", do_lower_case=True)
-model = BertForSequenceClassification.from_pretrained(
-    "bert-base-uncased",
+model_name = "xlm-roberta-base"
+#model_name = "bert-base-uncased"
+#model_name = "microsoft/deberta-base"
+tokenizer = AutoTokenizer.from_pretrained(model_name, do_lower_case=True)
+model = AutoModelForSequenceClassification.from_pretrained(
+    model_name,
     num_labels = 3,
     output_attentions = False,
     output_hidden_states = False
 )
 optimizer = AdamW(model.parameters(), lr = 2e-5)
-#folder_name = "post_text"
-folder_name = "target_paragraphs"
-model_name = f'{folder_name}/bert-base-4epochs-2e5lr.pt'
+folder_name = "post_text"
+#folder_name = "target_paragraphs"
 split_data_reader = SplitDataReader(folder_name)
-batch_size = 4
+batch_size = 1
 num_workers = 0
 epochs = 4
+model_path = f"{folder_name}/models/{model_name.split('/')[-1]}-{str(epochs)}-epochs-2e5lr.pt"
 
 # tokenize sentences
 encoded_input_train = tokenizer(split_data_reader.train_input, padding=True, truncation=True, max_length=512, return_tensors="pt")
