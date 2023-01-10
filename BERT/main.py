@@ -6,32 +6,36 @@ from torch.utils.data import TensorDataset, DataLoader, RandomSampler, Sequentia
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, get_linear_schedule_with_warmup
 
 from data_readers import SplitDataReader
+from my_bert import MyBERT
 from train import train
 from validate import validate
 
 # pytorch memory management
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:32"
+#os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:32"
 
 # training configuration
 device = torch.device("cuda")
-model_name = "xlm-roberta-base"
+#model_name = "xlm-roberta-base"
 #model_name = "bert-base-uncased"
 #model_name = "microsoft/deberta-base"
+model_name = "bert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_name, do_lower_case=True)
-model = AutoModelForSequenceClassification.from_pretrained(
+model = MyBERT(AutoModelForSequenceClassification.from_pretrained(
     model_name,
     num_labels = 3,
     output_attentions = False,
     output_hidden_states = False
-)
-optimizer = AdamW(model.parameters(), lr = 2e-5)
-folder_name = "post_text"
+))
+custom_model = True
+lr = 2e-5
+optimizer = AdamW(model.parameters(), lr = lr)
+#folder_name = "post_texts"
 #folder_name = "target_paragraphs"
+folder_name = "post_texts_and_first_200_words"
 split_data_reader = SplitDataReader(folder_name)
-batch_size = 1
+batch_size = 4
 num_workers = 0
 epochs = 4
-model_path = f"{folder_name}/models/{model_name.split('/')[-1]}-{str(epochs)}-epochs-2e5lr.pt"
 
 # tokenize sentences
 encoded_input_train = tokenizer(split_data_reader.train_input, padding=True, truncation=True, max_length=512, return_tensors="pt")
@@ -63,6 +67,7 @@ optimizer_scheduler = get_linear_schedule_with_warmup(optimizer,
     num_warmup_steps = 0,
     num_training_steps = total_steps)
 
+eval_acc = 0
 for epoch in range(0, epochs):
     print(f"\n======== Epoch {epoch + 1} / {epochs} ========")
     
@@ -70,8 +75,11 @@ for epoch in range(0, epochs):
 
     print(f"\nAverage training loss: {avg_train_loss:.2f}")
 
-    evaluation_accuracy = validate(device, model, validation_dataloader)
-    print(f"\nAccuracy: {evaluation_accuracy:.2f}")
+    eval_acc = validate(device, model, validation_dataloader)
+    print(f"\nAccuracy: {eval_acc:.2f}")
 
-torch.save(model.state_dict(), model_name)
+if custom_model:
+    model_name = "my-" + model_name
+model_path = f"./models/{folder_name}/{eval_acc:.2f}-{model_name.split('/')[-1]}-{epochs}e-{batch_size}bs-{lr}lr.pt"
+torch.save(model.state_dict(), model_path)
 print("Training complete!")

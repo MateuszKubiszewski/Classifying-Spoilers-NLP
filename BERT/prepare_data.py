@@ -1,6 +1,6 @@
 import json
 
-from data_reader import DataReader
+from data_readers import DataReader
 from sklearn.model_selection import train_test_split
 
 def split_data(input_data, labels):
@@ -13,27 +13,30 @@ def split_data(input_data, labels):
     return train_input, train_labels, val_input, val_labels, test_input, test_labels
 
 def save_split_data_into_json(folder_name, train_input, train_labels, val_input, val_labels, test_input, test_labels):
-    with open(f'./{folder_name}/{folder_name}_train_input.json', 'w+', encoding="utf8") as dest:
+    with open(f'./{folder_name}/train_input.json', 'w+', encoding="utf8") as dest:
         dest.write(json.dumps(train_input))
-    with open(f'./{folder_name}/{folder_name}_train_labels.json', 'w+', encoding="utf8") as dest:
+    with open(f'./{folder_name}/train_labels.json', 'w+', encoding="utf8") as dest:
         dest.write(json.dumps(train_labels))
-    with open(f'./{folder_name}/{folder_name}_val_input.json', 'w+', encoding="utf8") as dest:
+    with open(f'./{folder_name}/val_input.json', 'w+', encoding="utf8") as dest:
         dest.write(json.dumps(val_input))
-    with open(f'./{folder_name}/{folder_name}_val_labels.json', 'w+', encoding="utf8") as dest:
+    with open(f'./{folder_name}/val_labels.json', 'w+', encoding="utf8") as dest:
         dest.write(json.dumps(val_labels))
-    with open(f'./{folder_name}/{folder_name}_test_input.json', 'w+', encoding="utf8") as dest:
+    with open(f'./{folder_name}/test_input.json', 'w+', encoding="utf8") as dest:
         dest.write(json.dumps(test_input))
-    with open(f'./{folder_name}/{folder_name}_test_labels.json', 'w+', encoding="utf8") as dest:
+    with open(f'./{folder_name}/test_labels.json', 'w+', encoding="utf8") as dest:
         dest.write(json.dumps(test_labels))
+
+def prepare_data(data, folder_name):
+    train_input, train_labels, val_input, val_labels, test_input, test_labels = split_data(data, labels)
+    save_split_data_into_json(folder_name, train_input, train_labels, val_input, val_labels, test_input, test_labels)
 
 if __name__ == "__main__":
     data_reader = DataReader()
     labels = data_reader.get_all_labels_as_integers()
     post_texts = data_reader.get_all_post_texts()
     target_paragraphs = data_reader.get_all_target_paragraphs_as_strings()
+    merged_data = data_reader.get_post_texts_and_first_n_words_as_strings(200)
 
-    train_input, train_labels, val_input, val_labels, test_input, test_labels = split_data(post_texts, labels)
-    save_split_data_into_json('post_text', train_input, train_labels, val_input, val_labels, test_input, test_labels)
-
-    train_input, train_labels, val_input, val_labels, test_input, test_labels = split_data(target_paragraphs, labels)
-    save_split_data_into_json('target_paragraphs', train_input, train_labels, val_input, val_labels, test_input, test_labels)
+    prepare_data(post_texts, 'post_texts')
+    prepare_data(target_paragraphs, 'target_paragraphs')
+    prepare_data(merged_data, 'post_texts_and_first_200_words')

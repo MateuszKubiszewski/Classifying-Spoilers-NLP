@@ -1,31 +1,35 @@
+import numpy as np
 import torch
-import os
+import torch.nn as nn
 
+from sklearn.utils.class_weight import compute_class_weight
 from torch.optim import AdamW
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
-from transformers import BertForSequenceClassification, BertTokenizer, get_linear_schedule_with_warmup
+from transformers import AutoModel, AutoTokenizer, get_linear_schedule_with_warmup
 
 from data_readers import SplitDataReader
-from train import train
-from validate import validate
-
-# pytorch memory management
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:256"
+from my_bert import MyBERT
+from custom_train import custom_train
+from custom_validate import custom_validate
 
 # training configuration
 device = torch.device("cuda")
-tokenizer = BertTokenizer.from_pretrained("bert-base-uncased", do_lower_case=True)
-model = BertForSequenceClassification.from_pretrained(
-    "bert-base-uncased",
+model_name = "bert-base-uncased"
+tokenizer = AutoTokenizer.from_pretrained(model_name, do_lower_case=True)
+model = MyBERT(AutoModel.from_pretrained(
+    model_name,
     num_labels = 3,
     output_attentions = False,
     output_hidden_states = False
-)
-optimizer = AdamW(model.parameters(), lr = 2e-5)
-folder_name = "post_text"
-model_name = f'{folder_name}/bert-base-4epochs-2e5lr-trainer.pt'
+))
+custom_model = True
+lr = 2e-5
+optimizer = AdamW(model.parameters(), lr = lr)
+#folder_name = "post_texts"
+#folder_name = "target_paragraphs"
+folder_name = "post_texts_and_first_200_words"
 split_data_reader = SplitDataReader(folder_name)
-batch_size = 32
+batch_size = 4
 num_workers = 0
 epochs = 4
 
@@ -59,15 +63,24 @@ optimizer_scheduler = get_linear_schedule_with_warmup(optimizer,
     num_warmup_steps = 0,
     num_training_steps = total_steps)
 
+class_weights = compute_class_weight('balanced', classes=np.unique(train_labels), y=split_data_reader.train_labels)
+weights = torch.tensor(class_weights,dtype=torch.float)
+weights = weights.to(device)
+cross_entropy  = nn.NLLLoss(weight=weights)
+
+eval_acc = 0
 for epoch in range(0, epochs):
     print(f"\n======== Epoch {epoch + 1} / {epochs} ========")
     
-    avg_train_loss = train(device, model, train_dataloader, optimizer, optimizer_scheduler)
+    avg_train_loss = custom_train(device, model, train_dataloader, optimizer, optimizer_scheduler, cross_entropy)
 
     print(f"\nAverage training loss: {avg_train_loss:.2f}")
 
-    evaluation_accuracy = validate(device, model, validation_dataloader)
-    print(f"\nAccuracy: {evaluation_accuracy:.2f}")
+    eval_acc = custom_validate(device, model, validation_dataloader)
+    print(f"\nAccuracy: {eval_acc:.2f}")
 
-torch.save(model.state_dict(), model_name)
+if custom_model:
+    model_name = "my-" + model_name
+model_path = f"./models/{folder_name}/{eval_acc:.2f}-{model_name.split('/')[-1]}-{epochs}e-{batch_size}bs-{lr}lr.pt"
+torch.save(model.state_dict(), model_path)
 print("Training complete!")

@@ -2,7 +2,7 @@ import time
 import torch
 
 from torch.utils.data import TensorDataset, DataLoader, SequentialSampler
-from transformers import BertForSequenceClassification, BertTokenizer
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from data_readers import SplitDataReader
 from helpers import flat_accuracy, format_time
@@ -19,7 +19,7 @@ data_folder_name = 'target_paragraphs'
 batch_size = 4
 num_workers = 0
 
-model = BertForSequenceClassification.from_pretrained(
+model = AutoModelForSequenceClassification.from_pretrained(
     "bert-base-uncased",
     num_labels = 3,  
     output_attentions = False,
@@ -30,7 +30,7 @@ model.cuda()
 
 split_data_reader = SplitDataReader(data_folder_name)
 
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
 
 encoded_input_test = tokenizer(split_data_reader.test_input, padding=True, truncation=True, max_length=512, return_tensors="pt")
 test_inputs = encoded_input_test['input_ids'].clone().detach()
