@@ -1,6 +1,8 @@
 # Custom
 *.pt
 *bin
+config.json
+tira/tokenizer/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
